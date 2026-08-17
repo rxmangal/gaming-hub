@@ -1,22 +1,98 @@
 @import 'tailwindcss';
 
 /**
- * Unicity Arcade — OLED dark theme + HUD/sci-fi accents.
+ * Unicity Arcade — "Bright Aurora" light glassmorphism theme.
  *
  * Tailwind v4 is configured in CSS (no tailwind.config.js needed).
  * `@theme` entries become real Tailwind utilities, e.g. `bg-void`, `text-hud-cyan`.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * WHY THE TOKEN NAMES STILL SAY "void" AND "panel"
+ *
+ * This file used to hold an OLED (pure-black) palette. The theme is now light, but
+ * the token NAMES are deliberately unchanged, because they are referenced by class
+ * names across every component (`bg-void`, `bg-panel`, `border-hairline`, …).
+ * Re-pointing the values here re-themes the whole app without editing a single
+ * component — which is exactly the brief. Renaming the tokens instead would mean
+ * touching ~20 files for zero visual gain, so `void` now simply means "the page
+ * base", not "black".
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 @theme {
-  /* True black base so OLED panels draw zero light on the background. */
-  --color-void: #000000;
-  --color-panel: #08090c;
-  --color-panel-raised: #0d0f14;
-  --color-hairline: #1a1d26;
+  /* Base surfaces — light off-white, not pure white, so white glass cards read as raised. */
+  --color-void: #f8f9fa;
+  --color-panel: rgba(255, 255, 255, 0.75);
+  --color-panel-raised: rgba(255, 255, 255, 0.92);
+  --color-hairline: rgba(0, 0, 0, 0.08);
 
-  --color-hud-cyan: #22d3ee;
-  --color-hud-magenta: #e879f9;
-  --color-hud-lime: #a3e635;
-  --color-hud-amber: #fbbf24;
+  /*
+   * Accents, darkened from the neon originals.
+   * Cyan #22d3ee on white fails WCAG contrast badly; these are the 600-weight
+   * equivalents, which stay vivid while remaining legible on glass.
+   */
+  --color-hud-cyan: #0891b2;
+  --color-hud-magenta: #c026d3;
+  --color-hud-lime: #4d7c0f;
+  --color-hud-amber: #b45309;
+
+  /* Ink. Slate-900 for headings, slate-700 for body — per the brief. */
+  --color-ink: #0f172a;
+  --color-ink-soft: #334155;
+  --color-ink-faint: #64748b;
+
+  /*
+   * ───────────────────────────────────────────────────────────────────────────
+   * ZINC RAMP INVERSION — the compatibility layer that makes the theme flip
+   * work without touching component JSX.
+   *
+   * ~110 places across the app use Tailwind's zinc scale, written for a black
+   * background: `text-zinc-50` meant "brightest = most prominent", and
+   * `text-zinc-700` meant "dimmest". On a white background that ordering is
+   * exactly backwards — zinc-50 becomes invisible and zinc-700 becomes the
+   * loudest thing on screen.
+   *
+   * Tailwind v4 generates its utilities FROM these variables, so re-pointing
+   * them here inverts every one of those usages at once and preserves the
+   * author's intent: "prominent" stays prominent, "dim" stays dim.
+   *
+   * The ramp is inverted but COMPRESSED at the faint end: a true inversion
+   * would send zinc-700 to zinc-300 (#d4d4d8), which is ~1.5:1 on white and
+   * illegible. Everything therefore bottoms out at #64748b (4.6:1, WCAG AA
+   * for normal text) so no label becomes unreadable.
+   * ───────────────────────────────────────────────────────────────────────────
+   */
+  --color-zinc-50: #0f172a;
+  --color-zinc-100: #16213a;
+  --color-zinc-200: #1e293b;
+  --color-zinc-300: #334155;
+  --color-zinc-400: #475569;
+  --color-zinc-500: #52627a;
+  --color-zinc-600: #64748b;
+  --color-zinc-700: #64748b;
+  --color-zinc-800: #94a3b8;
+  --color-zinc-900: #cbd5e1;
+  --color-zinc-950: #e2e8f0;
+
+  /*
+   * LITERAL BLACK/WHITE SWAP — the second half of the compatibility layer.
+   *
+   * 21 places use literal `bg-black/40`, `text-white`, `border-white/20` etc. The
+   * zinc ramp above cannot reach those, because they resolve against these two
+   * tokens instead. Swapping the pair fixes every one of them in place:
+   *
+   *   bg-black/40   → white at 40%  → a lifted glass surface (was a sunken one)
+   *   text-white    → near-black    → the most prominent text (unchanged intent)
+   *   border-white  → dark hairline → a visible edge on a light background
+   *
+   * The intent of each usage is preserved exactly; only the polarity flips. This
+   * is safe here because the arcade renders no true monochrome UI — every game
+   * board draws its own colours inside a Phaser canvas or from the zinc ramp, so
+   * nothing depends on these being literally #000 / #fff.
+   */
+  --color-black: #f8f9fa;
+  --color-white: #0f172a;
+
+
 
   /*
    * Font stacks.
@@ -30,7 +106,6 @@
   --font-display: var(--font-display-family), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-display-family), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-family), ui-monospace, 'SFMono-Regular', Menlo, monospace;
-
 
   --animate-scan: scan 8s linear infinite;
   --animate-pulse-ring: pulse-ring 2.4s ease-out infinite;
@@ -48,13 +123,13 @@
 
 @keyframes pulse-ring {
   0% {
-    box-shadow: 0 0 0 0 rgb(34 211 238 / 0.5);
+    box-shadow: 0 0 0 0 rgb(8 145 178 / 0.35);
   }
   70% {
-    box-shadow: 0 0 0 10px rgb(34 211 238 / 0);
+    box-shadow: 0 0 0 10px rgb(8 145 178 / 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgb(34 211 238 / 0);
+    box-shadow: 0 0 0 0 rgb(8 145 178 / 0);
   }
 }
 
@@ -68,43 +143,86 @@
   }
 }
 
+/*
+ * The aurora background.
+ *
+ * Two soft radial washes (cyan + purple) pinned to the viewport, painted at very low
+ * alpha on the off-white base. `background-attachment: fixed` keeps them still while
+ * content scrolls, so they read as ambient lighting rather than page decoration.
+ */
 html,
 body {
-  background-color: #000;
-  color: #e6e8ef;
+  background-color: #f8f9fa;
+  background-image:
+    radial-gradient(60rem 60rem at 12% -10%, rgba(0, 229, 255, 0.13), transparent 60%),
+    radial-gradient(50rem 50rem at 88% 0%, rgba(121, 40, 202, 0.13), transparent 60%),
+    radial-gradient(40rem 40rem at 50% 110%, rgba(0, 229, 255, 0.09), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: #0f172a;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Thin, sci-fi scrollbar. */
+/* Thin scrollbar, tuned for the light surface. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #08090c;
+  background: #eef1f5;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f2430;
+  background: #c3cad6;
   border-radius: 9999px;
-  border: 2px solid #08090c;
+  border: 2px solid #eef1f5;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2b3242;
+  background: #a6b0c0;
 }
 
 /* Keyboard focus ring that matches the HUD language. */
 :focus-visible {
-  outline: 2px solid #22d3ee;
+  outline: 2px solid #0891b2;
   outline-offset: 2px;
 }
 
 @layer utilities {
-  /* Faint blueprint grid used behind the lobby. */
+  /* Faint blueprint grid. Dark lines at low alpha, since the base is now light. */
   .hud-grid {
     background-image:
-      linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+      linear-gradient(to right, rgb(15 23 42 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(15 23 42 / 0.045) 1px, transparent 1px);
     background-size: 56px 56px;
+  }
+
+  /*
+   * Frosted glass card.
+   *
+   * The layered shadow does the work: a tight dark shadow for lift, plus an inset
+   * white highlight along the top edge to fake a glass bevel. `backdrop-filter`
+   * is what actually blurs the aurora behind the card.
+   */
+  .glass {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 8px 24px -8px rgb(15 23 42 / 0.12),
+      inset 0 1px 0 rgb(255 255 255 / 0.9);
+  }
+
+  /* Slightly more opaque variant for panels that sit on top of other glass. */
+  .glass-raised {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 2px 4px rgb(15 23 42 / 0.05),
+      0 16px 40px -12px rgb(15 23 42 / 0.16),
+      inset 0 1px 0 rgb(255 255 255 / 0.95);
   }
 
   /* Corner brackets — the signature HUD frame on each bento tile. */
@@ -114,7 +232,7 @@ body {
     position: absolute;
     width: 14px;
     height: 14px;
-    border-color: rgb(255 255 255 / 0.25);
+    border-color: rgb(15 23 42 / 0.22);
     transition: border-color 200ms ease;
     pointer-events: none;
   }
@@ -132,20 +250,25 @@ body {
   }
   .group:hover .hud-corners::before,
   .group:hover .hud-corners::after {
-    border-color: rgb(34 211 238 / 0.9);
+    border-color: rgb(8 145 178 / 0.9);
   }
 
   /* Monospace, wide-tracked micro-label. Uses the same loaded mono as `font-mono`. */
   .hud-label {
     font-family: var(--font-mono);
-
     font-size: 10px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
   }
 
+  /*
+   * On a light background a text-shadow "glow" turns to mud, so this is now a
+   * subtle tint lift instead. Kept under the original name so existing markup
+   * needn't change.
+   */
   .text-glow-cyan {
-    text-shadow: 0 0 18px rgb(34 211 238 / 0.55);
+    color: #0e7490;
+    text-shadow: 0 1px 12px rgb(8 145 178 / 0.22);
   }
 }
 

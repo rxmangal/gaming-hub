@@ -19,7 +19,10 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
   // Cursor position drives a radial spotlight on the tile surface.
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
-  const spotlight = useMotionTemplate`radial-gradient(420px circle at ${mx}px ${my}px, ${game.glow}18, transparent 70%)`;
+  // 22 (~13% alpha) reads on white; the old 18 was tuned for a black surface and
+  // vanished entirely once the theme went light.
+  const spotlight = useMotionTemplate`radial-gradient(420px circle at ${mx}px ${my}px, ${game.glow}22, transparent 70%)`;
+
 
   const isLive = game.href !== null;
 
@@ -47,7 +50,9 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
           className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 hud-label backdrop-blur ${
             isLive
               ? 'border-hud-lime/30 bg-hud-lime/10 text-hud-lime'
-              : 'border-hairline bg-black/50 text-zinc-400'
+              : 'border-hairline bg-panel text-ink-faint'
+
+
           }`}
         >
           {isLive ? (
@@ -58,11 +63,12 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
               aria-hidden="true"
             />
           ) : (
-            <span className="h-1 w-1 rounded-full bg-zinc-500" aria-hidden="true" />
+            <span className="h-1 w-1 rounded-full bg-ink-faint" aria-hidden="true" />
           )}
           {isLive ? 'Live' : game.status === 'alpha' ? 'Alpha' : 'Soon'}
         </span>
-        <span className="hud-label text-right text-zinc-600">{game.mode}</span>
+        <span className="hud-label text-right text-ink-faint">{game.mode}</span>
+
       </header>
 
       {/* Glyph */}
@@ -78,15 +84,16 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
 
       {/* Body */}
       <div className="relative z-10">
-        <h3 className="text-lg font-semibold tracking-tight text-zinc-50">{game.title}</h3>
-        <p className="mt-1.5 max-w-[30ch] text-xs leading-relaxed text-zinc-500">
+        <h3 className="text-lg font-semibold tracking-tight text-ink">{game.title}</h3>
+        <p className="mt-1.5 max-w-[30ch] text-xs leading-relaxed text-ink-soft">
           {game.tagline}
         </p>
 
         <footer className="mt-4 flex items-center justify-between border-t border-hairline pt-3">
-          <span className="hud-label text-zinc-600">{game.players}</span>
+          <span className="hud-label text-ink-faint">{game.players}</span>
           {isLive ? (
-            <span className="inline-flex items-center gap-1.5 hud-label text-zinc-300 transition-colors group-hover:text-white">
+            <span className="inline-flex items-center gap-1.5 hud-label text-ink-soft transition-colors group-hover:text-hud-cyan">
+
               Play
               <motion.span
                 aria-hidden="true"
@@ -99,9 +106,10 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
               </motion.span>
             </span>
           ) : (
-            <span className="hud-label text-zinc-700 transition-colors group-hover:text-zinc-400">
+            <span className="hud-label text-ink-faint transition-colors group-hover:text-ink-soft">
               Locked
             </span>
+
           )}
         </footer>
       </div>
@@ -124,11 +132,13 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
     },
   };
 
-  const base = `group relative flex min-h-[11rem] flex-col justify-between overflow-hidden rounded-3xl border border-hairline bg-panel p-5 transition-colors duration-300 ${game.span}`;
+  // `glass` supplies the frosted background, border and shadow (see globals.css).
+  const base = `glass group relative flex min-h-[11rem] flex-col justify-between overflow-hidden rounded-3xl p-5 transition-colors duration-300 ${game.span}`;
 
   if (isLive) {
     return (
-      <motion.div {...shared} className={`${base} hover:border-white/25`}>
+      <motion.div {...shared} className={`${base} hover:border-hud-cyan/40`}>
+
         {/* The Link covers the whole tile so the entire surface is clickable. */}
         <Link
           href={game.href as string}
@@ -144,7 +154,8 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
     <motion.article
       {...shared}
       aria-disabled="true"
-      className={`${base} hover:border-white/20`}
+      className={`${base} hover:border-ink/20`}
+
     >
       {inner}
     </motion.article>
