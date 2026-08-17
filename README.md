@@ -60,6 +60,19 @@ restarts, but clearing site data or switching browsers starts a fresh record.
 > draws on purpose. Both players share one wallet in that mode, so there is no honest way
 > to say which of the two humans earned the win.
 
+### Leaderboards
+
+The **🏆 Leaderboards** button in the lobby (or `/leaderboard`) opens a **Top 30 board for
+every game**, with a tab per cabinet. Your own row is highlighted wherever you place.
+
+Each board ranks by what that game actually measures — Chess and Tic-Tac-Toe by wins (with
+the full W-L-D record shown next to it), Match-3 and Runner by high score. Every row also
+says *how* the result was earned, so an `AI · normal` win is never silently passed off as a
+win against a real opponent. Boards refresh live as scores come in.
+
+This is the one feature that needs the optional backend from step 5 — without it the page
+explains itself instead of breaking, and your personal bests still work on-device.
+
 ---
 
 
@@ -122,14 +135,18 @@ Realtime broadcast channels only, which need no schema, no SQL, and no migration
 > **Is the anon key a secret?** No. It is designed to be public and is safe in the
 > browser. Never paste your `service_role` key anywhere in this project.
 
-### 5. (Optional) Global leaderboard for Match-3 and Runner
+### 5. (Optional) Global Top 30 leaderboards
 
-Your Match-3 and Runner scores **always** save to your own browser, with no setup. If you
-also want a shared leaderboard across all players, create one table.
+Your scores and match history **always** save to your own browser, with no setup. If you
+also want the shared **Top 30 leaderboards** at `/leaderboard`, create two tables.
 
-In Supabase, open **SQL Editor** → **New query**, paste this, and click **Run**:
+Two are needed because the games measure different things: Neon Nexus and Block Dash rank
+by high score, while Chess and Tic-Tac-Toe rank by win/loss record.
+
+In Supabase, open **SQL Editor** → **New query**, paste **all** of this, and click **Run**:
 
 ```sql
+-- ── Table 1 of 2: high scores for the solo games (Neon Nexus, Block Dash) ──
 create table if not exists solo_scores (
   id            bigint generated always as identity primary key,
   game_id       text        not null,
@@ -154,9 +171,39 @@ create policy "leaderboard is public"
 -- ...and anyone may add their own run, but nobody can edit or delete existing rows.
 create policy "anyone can post a score"
   on solo_scores for insert with check (true);
+
+
+-- ── Table 2 of 2: win/loss records for the versus games (Chess, Tic-Tac-Toe) ──
+create table if not exists match_results (
+  id            bigint generated always as identity primary key,
+  game_id       text        not null,
+  mode          text        not null,          -- 'ai' | 'online' | 'local'
+  outcome       text        not null,          -- 'win' | 'loss' | 'draw'
+  difficulty    text,                          -- set when mode = 'ai'
+  chain_pubkey  text        not null,
+  display_name  text        not null,
+  created_at    timestamptz not null default now()
+);
+
+-- Supports the "recent matches for this game" scan the wins board runs.
+create index if not exists match_results_leaderboard
+  on match_results (game_id, created_at desc);
+
+alter table match_results enable row level security;
+
+create policy "match history is public"
+  on match_results for select using (true);
+
+create policy "anyone can post a result"
+  on match_results for insert with check (true);
 ```
 
 No extra environment variables are needed — it reuses the same two Supabase keys.
+
+**Then switch on live updates.** Go to **Database → Publications → `supabase_realtime`**
+and tick both `solo_scores` and `match_results`. This is what makes a rival's new score
+appear on the board without a refresh. Skipping it is harmless — the boards still work,
+they just need a manual reload.
 
 > **Why can anyone insert a score?** Because the games run entirely in the browser, a
 > determined person could always post a fake number. Stopping that requires the server to
@@ -317,6 +364,7 @@ src/
     page.tsx                   Home — wallet gate + lobby
     globals.css                Design tokens: OLED palette, HUD accents
     profile/page.tsx           /profile route — your stats and the leaderboards
+    leaderboard/page.tsx       /leaderboard route — Top 30 per game
     play/
       chess/page.tsx           /play/chess route
       tic-tac-toe/page.tsx     /play/tic-tac-toe route
@@ -332,9 +380,10 @@ src/
     sphere-config.ts           Sphere SDK setup, network config
     wallet-errors.ts           Turns SDK errors into plain-English messages
     supabase.ts                Supabase client (returns null if keys absent)
-    games.ts                   The game library (titles, routes, tile sizes)
+    games.ts                   The game library (titles, routes, tile art)
     scores.ts                  Saves solo runs: local best + optional leaderboard
     profile.ts                 Win/loss/streak records, keyed to your wallet
+    leaderboard.ts             Per-game Top 30 queries + live board subscription
 
 
 
@@ -375,6 +424,9 @@ src/
       PlayerProfile.tsx        The profile screen: identity, stats, history
       StatCard.tsx             One headline stat tile
       Leaderboard.tsx          Global top-ten table (needs Supabase)
+    leaderboard/
+      LeaderboardScreen.tsx    /leaderboard shell with one tab per game
+      GameLeaderboard.tsx      One game's Top 30 table, live-updating
 
 
 scripts/

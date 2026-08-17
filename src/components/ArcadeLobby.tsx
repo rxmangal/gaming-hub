@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'motion/react';
 
 import { ARCADE_GAMES } from '@/lib/games';
@@ -238,6 +239,22 @@ export function ArcadeLobby() {
               <p className="mt-1 hud-label text-ink-faint">
                 {ARCADE_GAMES.length} cabinets · head-to-head and solo
               </p>
+            </div>
+
+            {/* Quick links out to the standings and the player's own record. */}
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/leaderboard"
+                className="rounded-full border border-hairline bg-panel px-3.5 py-2 hud-label text-ink-soft transition-colors hover:border-hud-cyan/40 hover:text-hud-cyan"
+              >
+                🏆 Leaderboards
+              </Link>
+              <Link
+                href="/profile"
+                className="hidden rounded-full border border-hairline bg-panel px-3.5 py-2 hud-label text-ink-soft transition-colors hover:border-hud-cyan/40 hover:text-hud-cyan sm:block"
+              >
+                My record
+              </Link>
             </div>
           </div>
 
