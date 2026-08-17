@@ -8,6 +8,12 @@
  *
  * Playable tiles (`game.href`) render as a Next.js <Link>; unbuilt ones stay inert
  * and are marked aria-disabled so assistive tech doesn't advertise a dead control.
+ *
+ * SIZING: every tile is identical. The card fills its grid cell (`h-full`) and the
+ * grid supplies one fixed row height for the whole row, so all four cabinets match
+ * exactly. `min-h-*` sets the floor for the mobile single-column case, where rows
+ * are content-sized rather than fixed. The old per-game `span` classes are gone —
+ * see the layout note in src/lib/games.ts.
  */
 
 import Link from 'next/link';
@@ -22,7 +28,6 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
   // 22 (~13% alpha) reads on white; the old 18 was tuned for a black surface and
   // vanished entirely once the theme went light.
   const spotlight = useMotionTemplate`radial-gradient(420px circle at ${mx}px ${my}px, ${game.glow}22, transparent 70%)`;
-
 
   const isLive = game.href !== null;
 
@@ -51,8 +56,6 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
             isLive
               ? 'border-hud-lime/30 bg-hud-lime/10 text-hud-lime'
               : 'border-hairline bg-panel text-ink-faint'
-
-
           }`}
         >
           {isLive ? (
@@ -68,7 +71,6 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
           {isLive ? 'Live' : game.status === 'alpha' ? 'Alpha' : 'Soon'}
         </span>
         <span className="hud-label text-right text-ink-faint">{game.mode}</span>
-
       </header>
 
       {/* Glyph */}
@@ -85,7 +87,7 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
       {/* Body */}
       <div className="relative z-10">
         <h3 className="text-lg font-semibold tracking-tight text-ink">{game.title}</h3>
-        <p className="mt-1.5 max-w-[30ch] text-xs leading-relaxed text-ink-soft">
+        <p className="mt-1.5 max-w-[34ch] text-xs leading-relaxed text-ink-soft">
           {game.tagline}
         </p>
 
@@ -93,7 +95,6 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
           <span className="hud-label text-ink-faint">{game.players}</span>
           {isLive ? (
             <span className="inline-flex items-center gap-1.5 hud-label text-ink-soft transition-colors group-hover:text-hud-cyan">
-
               Play
               <motion.span
                 aria-hidden="true"
@@ -109,7 +110,6 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
             <span className="hud-label text-ink-faint transition-colors group-hover:text-ink-soft">
               Locked
             </span>
-
           )}
         </footer>
       </div>
@@ -133,12 +133,14 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
   };
 
   // `glass` supplies the frosted background, border and shadow (see globals.css).
-  const base = `glass group relative flex min-h-[11rem] flex-col justify-between overflow-hidden rounded-3xl p-5 transition-colors duration-300 ${game.span}`;
+  // `h-full` makes every tile fill its grid cell, which is what guarantees the four
+  // cards are the same height rather than each sizing to its own text.
+  const base =
+    'glass group relative flex h-full min-h-[13rem] flex-col justify-between overflow-hidden rounded-3xl p-5 transition-colors duration-300';
 
   if (isLive) {
     return (
       <motion.div {...shared} className={`${base} hover:border-hud-cyan/40`}>
-
         {/* The Link covers the whole tile so the entire surface is clickable. */}
         <Link
           href={game.href as string}
@@ -151,12 +153,7 @@ export function GameCard({ game, index }: { game: ArcadeGame; index: number }) {
   }
 
   return (
-    <motion.article
-      {...shared}
-      aria-disabled="true"
-      className={`${base} hover:border-ink/20`}
-
-    >
+    <motion.article {...shared} aria-disabled="true" className={`${base} hover:border-ink/20`}>
       {inner}
     </motion.article>
   );

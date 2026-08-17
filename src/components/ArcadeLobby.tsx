@@ -13,9 +13,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 
-import { EXTRA_GAMES, FEATURED_GAMES } from '@/lib/games';
+import { ARCADE_GAMES } from '@/lib/games';
 import { ARCADE_NETWORK } from '@/lib/sphere-config';
 import {
   type ActivityEntry,
@@ -134,7 +134,6 @@ function RecentActivity({ delay }: { delay: number }) {
 
 export function ArcadeLobby() {
   const { player, isLocked } = useWallet();
-  const [showExtra, setShowExtra] = useState(false);
 
   return (
     <div className="relative min-h-dvh bg-void">
@@ -152,7 +151,6 @@ export function ArcadeLobby() {
         would paint this header navy.
       */}
       <header className="sticky top-0 z-40 border-b border-hairline bg-panel backdrop-blur-xl">
-
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <motion.span
@@ -237,73 +235,25 @@ export function ArcadeLobby() {
               >
                 Game library
               </h2>
-              <p className="mt-1 hud-label text-ink-faint">Head-to-head</p>
+              <p className="mt-1 hud-label text-ink-faint">
+                {ARCADE_GAMES.length} cabinets · head-to-head and solo
+              </p>
             </div>
           </div>
 
           {/*
-            Bento box: 1 column on mobile, 2 on tablet, 4 on desktop.
-            Tiles claim uneven footprints via `game.span` (see src/lib/games.ts),
-            with auto-rows giving the grid its characteristic bento rhythm.
+            Uniform 2x2 bento grid.
+            - Mobile (<640px): a single column, rows sized by content (GameCard's
+              min-h keeps them from collapsing).
+            - 640px and up: exactly two columns, so four games form a balanced 2x2.
+            - `auto-rows-fr` makes both rows share equal height, and each GameCard
+              uses `h-full` to fill its cell — that pairing is what guarantees all
+              four tiles are identical in size regardless of tagline length.
           */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:auto-rows-[11.5rem] md:grid-cols-4">
-            {FEATURED_GAMES.map((game, index) => (
+          <div className="grid grid-cols-1 gap-4 sm:auto-rows-fr sm:grid-cols-2">
+            {ARCADE_GAMES.map((game, index) => (
               <GameCard key={game.id} game={game} index={index} />
             ))}
-          </div>
-
-          {/* ---------------- "Play More Games" toggle ---------------- */}
-          <div className="mt-5">
-            <motion.button
-              type="button"
-              onClick={() => setShowExtra((v) => !v)}
-              whileTap={{ scale: 0.98 }}
-              aria-expanded={showExtra}
-              aria-controls="extra-games"
-              className="glass group flex w-full items-center justify-between gap-3 rounded-3xl px-5 py-4 text-left transition-colors hover:border-hud-cyan/40"
-            >
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold tracking-tight text-ink">
-                  {showExtra ? 'Hide extra games' : 'Play more games'}
-                </span>
-                <span className="mt-0.5 block hud-label text-ink-faint">
-                  {EXTRA_GAMES.map((g) => g.title).join(' · ')}
-                </span>
-              </span>
-              <motion.span
-                className="shrink-0 text-hud-cyan"
-                animate={{ rotate: showExtra ? 180 : 0 }}
-                transition={{ duration: 0.3, ease: EASE }}
-                aria-hidden="true"
-              >
-                ▾
-              </motion.span>
-            </motion.button>
-
-            {/*
-              AnimatePresence + height:auto gives the reveal a real slide rather than a
-              pop. The tiles are unmounted when hidden, so their Phaser-backed routes
-              are never even prefetched until the player opts in.
-            */}
-            <AnimatePresence initial={false}>
-              {showExtra && (
-                <motion.div
-                  id="extra-games"
-                  key="extra"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.4, ease: EASE }}
-                  className="overflow-hidden"
-                >
-                  <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2 md:auto-rows-[11.5rem] md:grid-cols-4">
-                    {EXTRA_GAMES.map((game, index) => (
-                      <GameCard key={game.id} game={game} index={index} />
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
           {/* ---------------- Identity tile ---------------- */}

@@ -2,7 +2,6 @@
  * The arcade's game library.
  *
  * Presentation data only — no game logic lives here.
- * `span` drives the bento-box grid so tiles are deliberately unequal in size.
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * IDs ARE DATA CONTRACTS — DO NOT RENAME THEM.
@@ -16,18 +15,15 @@
  * stay `runner` and `match-3` forever, and only `title` (what the player reads)
  * changes. Routes are likewise frozen at /play/runner and /play/match-3.
  * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * LAYOUT NOTE: every game is now shown on the lobby's first screen in one uniform
+ * 2x2 grid. There is no longer a `span` field (tiles are deliberately equal-sized)
+ * and no `tier` field (nothing is hidden behind a toggle). The grid geometry lives
+ * entirely in ArcadeLobby.tsx, so tile sizing is a layout concern in one place
+ * rather than data smeared across this file.
  */
 
 export type GameStatus = 'soon' | 'alpha' | 'live';
-
-/**
- * Which shelf a game sits on in the lobby.
- *
- * `featured` tiles render immediately; `extra` tiles stay hidden behind the
- * "Play More Games" toggle. This keeps the first screen focused on the two
- * head-to-head games without burying the arcade titles.
- */
-export type GameTier = 'featured' | 'extra';
 
 export interface ArcadeGame {
   /** Stable internal key. Also the DB/localStorage key — never change it. */
@@ -42,16 +38,18 @@ export interface ArcadeGame {
   status: GameStatus;
   /** Route to play. Null means the tile is not playable yet. */
   href: string | null;
-  /** Tailwind classes controlling the tile's footprint in the bento grid. */
-  span: string;
   /** Tailwind `from-*`/`to-*` stops for the tile's accent wash. */
   accent: string;
   /** Hex used for the glow ring so it can be applied inline. */
   glow: string;
-  /** Shelf placement — see GameTier. */
-  tier: GameTier;
 }
 
+/**
+ * Every cabinet in the arcade, in display order.
+ *
+ * Order matters: this is the exact order the 2x2 lobby grid paints, so the two
+ * head-to-head games lead and the two solo arcade games follow.
+ */
 export const ARCADE_GAMES: ArcadeGame[] = [
   {
     id: 'chess',
@@ -62,10 +60,8 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     mode: 'Turn-based',
     status: 'live',
     href: '/play/chess',
-    span: 'md:col-span-2 md:row-span-2',
     accent: 'from-cyan-500/20 to-transparent',
     glow: '#06b6d4',
-    tier: 'featured',
   },
   {
     id: 'tic-tac-toe',
@@ -76,10 +72,8 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     mode: 'Turn-based',
     status: 'live',
     href: '/play/tic-tac-toe',
-    span: 'md:col-span-2 md:row-span-2',
     accent: 'from-fuchsia-500/20 to-transparent',
     glow: '#c026d3',
-    tier: 'featured',
   },
   {
     // id stays 'match-3' — see the contract note at the top of this file.
@@ -91,10 +85,8 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     mode: 'Real-time',
     status: 'live',
     href: '/play/match-3',
-    span: 'md:col-span-2 md:row-span-1',
     accent: 'from-amber-500/20 to-transparent',
     glow: '#d97706',
-    tier: 'extra',
   },
   {
     // id stays 'runner' — see the contract note at the top of this file.
@@ -106,18 +98,10 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     mode: 'Real-time',
     status: 'live',
     href: '/play/runner',
-    span: 'md:col-span-2 md:row-span-1',
     accent: 'from-emerald-500/20 to-transparent',
     glow: '#059669',
-    tier: 'extra',
   },
 ];
-
-/** Tiles shown on first paint. */
-export const FEATURED_GAMES = ARCADE_GAMES.filter((g) => g.tier === 'featured');
-
-/** Tiles revealed by the "Play More Games" toggle. */
-export const EXTRA_GAMES = ARCADE_GAMES.filter((g) => g.tier === 'extra');
 
 /**
  * Display title for an internal id.
