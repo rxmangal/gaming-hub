@@ -1,0 +1,161 @@
+@import 'tailwindcss';
+
+/**
+ * Unicity Arcade — OLED dark theme + HUD/sci-fi accents.
+ *
+ * Tailwind v4 is configured in CSS (no tailwind.config.js needed).
+ * `@theme` entries become real Tailwind utilities, e.g. `bg-void`, `text-hud-cyan`.
+ */
+@theme {
+  /* True black base so OLED panels draw zero light on the background. */
+  --color-void: #000000;
+  --color-panel: #08090c;
+  --color-panel-raised: #0d0f14;
+  --color-hairline: #1a1d26;
+
+  --color-hud-cyan: #22d3ee;
+  --color-hud-magenta: #e879f9;
+  --color-hud-lime: #a3e635;
+  --color-hud-amber: #fbbf24;
+
+  /*
+   * Font stacks.
+   *
+   * The families come from `next/font` in `src/app/layout.tsx`, which self-hosts them and
+   * exposes each as a CSS variable. Referencing those variables here turns them into real
+   * Tailwind utilities: `font-display` for headings, `font-mono` for every HUD readout,
+   * and `--font-sans` as the page default. The fallbacks matter — they are what renders
+   * during the swap, and on the rare occasion a font file fails to load.
+   */
+  --font-display: var(--font-display-family), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-display-family), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-family), ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+
+  --animate-scan: scan 8s linear infinite;
+  --animate-pulse-ring: pulse-ring 2.4s ease-out infinite;
+  --animate-flicker: flicker 4s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(34 211 238 / 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgb(34 211 238 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(34 211 238 / 0);
+  }
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+html,
+body {
+  background-color: #000;
+  color: #e6e8ef;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thin, sci-fi scrollbar. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #08090c;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2430;
+  border-radius: 9999px;
+  border: 2px solid #08090c;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2b3242;
+}
+
+/* Keyboard focus ring that matches the HUD language. */
+:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+}
+
+@layer utilities {
+  /* Faint blueprint grid used behind the lobby. */
+  .hud-grid {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /* Corner brackets — the signature HUD frame on each bento tile. */
+  .hud-corners::before,
+  .hud-corners::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: rgb(255 255 255 / 0.25);
+    transition: border-color 200ms ease;
+    pointer-events: none;
+  }
+  .hud-corners::before {
+    top: 10px;
+    left: 10px;
+    border-top-width: 1px;
+    border-left-width: 1px;
+  }
+  .hud-corners::after {
+    bottom: 10px;
+    right: 10px;
+    border-bottom-width: 1px;
+    border-right-width: 1px;
+  }
+  .group:hover .hud-corners::before,
+  .group:hover .hud-corners::after {
+    border-color: rgb(34 211 238 / 0.9);
+  }
+
+  /* Monospace, wide-tracked micro-label. Uses the same loaded mono as `font-mono`. */
+  .hud-label {
+    font-family: var(--font-mono);
+
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .text-glow-cyan {
+    text-shadow: 0 0 18px rgb(34 211 238 / 0.55);
+  }
+}
+
+/* Respect users who ask for less motion — disable all decorative animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

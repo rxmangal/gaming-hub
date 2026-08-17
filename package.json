@@ -1,0 +1,37 @@
+{
+  "name": "unicity-arcade",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free-to-play browser multiplayer arcade on Unicity, gated by the Sphere wallet.",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "verify:build": "tsc src/games/tictactoe/engine.ts src/games/chess/ai.ts src/games/match3/engine.ts src/games/runner/generator.ts --outDir .verify --rootDir src/games --module esnext --target es2022 --moduleResolution bundler --skipLibCheck",
+    "verify:ai": "npm run verify:build && node scripts/verify-ttt-ai.mjs && node scripts/verify-chess-ai.mjs && node scripts/verify-match3.mjs && node scripts/verify-runner.mjs",
+    "verify:match3": "npm run verify:build && node scripts/verify-match3.mjs",
+    "verify:runner": "npm run verify:build && node scripts/verify-runner.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "@unicitylabs/sphere-sdk": "0.14.9",
+    "chess.js": "^1.4.0",
+    "motion": "13.1.0",
+    "next": "16.3.1",
+    "phaser": "^4.2.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}
