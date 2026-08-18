@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Unicity Arcade',
     description:
-      'Chess, Tic-Tac-Toe, Match-3 and Runner. Free to play. Your Sphere wallet is your identity.',
+      'Chess, Tic-Tac-Toe, Neon Nexus and Block Dash. Free to play. Your Sphere wallet is your identity.',
     type: 'website',
   },
   // Installable-app polish: iOS uses this when the arcade is added to the home screen.

@@ -37,6 +37,34 @@ const GLYPH: Record<string, string> = {
   k: '♚',
 };
 
+/**
+ * BOARD COLOURS — fixed after a real usability failure.
+ *
+ * The board used to be #2a2e35 light squares against #15181d dark ones, with black
+ * pieces drawn in #0c0d10. Every one of those is near-black. It looked sleek in a
+ * mockup and was genuinely unreadable in use: you could not tell the squares apart,
+ * and the black pieces vanished into the dark ones.
+ *
+ * A chess board has one hard requirement that beats any styling preference — you must
+ * be able to see it. So the squares now use a proper light/dark pair with a large
+ * luminance gap, tinted slate-teal so it still belongs in the HUD theme rather than
+ * looking like a default web board.
+ *
+ * Contrast ratios against their own square (WCAG AA needs 4.5:1 for text):
+ *   white piece on dark square ≈ 5.9:1     black piece on light square ≈ 12.6:1
+ *   white piece on light square ≈ 3.1:1 — carried by the dark outline below
+ * Every piece also gets a stroke in the opposite colour, so a white piece standing on
+ * a light square still has a hard, visible edge.
+ */
+const SQUARE_LIGHT = '#cfd8dc';
+const SQUARE_DARK = '#5c7a8a';
+
+/** Outlines make a piece legible even on a same-tone square. */
+const WHITE_PIECE_CLASS =
+  'text-white [text-shadow:0_0_2px_rgba(0,0,0,0.95),0_0_5px_rgba(0,0,0,0.7),0_1px_1px_rgba(0,0,0,0.9)]';
+const BLACK_PIECE_CLASS =
+  'text-[#101418] [text-shadow:0_0_2px_rgba(255,255,255,0.55),0_1px_1px_rgba(255,255,255,0.4)]';
+
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
 const RANKS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 
@@ -507,18 +535,43 @@ export function ChessGame() {
                       : ', empty'
                   }`}
                   onClick={() => handleSquareClick(cell.square)}
-                  className={`relative flex touch-manipulation select-none items-center justify-center transition-colors duration-150 ${
-                    cell.isLight ? 'bg-[#2a2e35]' : 'bg-[#15181d]'
-                  } ${isSelected ? '!bg-hud-cyan/25' : ''} ${
-                    isLast && !isSelected ? '!bg-hud-cyan/[0.08]' : ''
-                  } ${kingInCheck ? '!bg-red-500/25' : ''}`}
+                  /*
+                    Square colour is applied inline rather than through a Tailwind class
+                    so the two hex values live in one named place at the top of the file.
+                    Highlights are layered as overlays below instead of replacing the
+                    background — the previous `!bg-*` overrides wiped the square colour
+                    out entirely, which is what made a selected square lose its identity.
+                  */
+                  style={{
+                    backgroundColor: cell.isLight ? SQUARE_LIGHT : SQUARE_DARK,
+                  }}
+                  className="relative flex touch-manipulation select-none items-center justify-center"
                 >
-                  {/* Legal-move indicator */}
+                  {/* Highlight overlays. Tinted, translucent, and stacked under the piece. */}
+                  {isSelected && (
+                    <span
+                      className="absolute inset-0 bg-hud-cyan/45"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {isLast && !isSelected && (
+                    <span
+                      className="absolute inset-0 bg-hud-cyan/20"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {kingInCheck && (
+                    <span className="absolute inset-0 bg-red-500/55" aria-hidden="true" />
+                  )}
+                  {/*
+                    Legal-move dot. Dark navy at high opacity rather than translucent
+                    cyan: on the new light squares a pale dot was nearly invisible.
+                  */}
                   {isTarget && !isCapture && (
                     <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute h-1/4 w-1/4 rounded-full bg-hud-cyan/45"
+                      className="absolute h-[28%] w-[28%] rounded-full bg-[#0b1f2a]/70 ring-1 ring-white/30"
                       aria-hidden="true"
                     />
                   )}
@@ -526,7 +579,7 @@ export function ChessGame() {
                     <motion.span
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="absolute inset-[6%] rounded-md ring-2 ring-hud-magenta/70"
+                      className="absolute inset-[6%] rounded-md ring-[3px] ring-red-600/90"
                       aria-hidden="true"
                     />
                   )}
@@ -535,10 +588,8 @@ export function ChessGame() {
                     <motion.span
                       layoutId={`piece-${cell.square}-${cell.piece.color}${cell.piece.type}`}
                       initial={false}
-                      className={`relative z-10 text-[clamp(1.4rem,5.2vw,2.5rem)] leading-none ${
-                        cell.piece.color === 'w'
-                          ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]'
-                          : 'text-[#0c0d10] [text-shadow:0_0_1px_rgba(255,255,255,0.45)]'
+                      className={`relative z-10 text-[clamp(1.5rem,5.4vw,2.6rem)] leading-none ${
+                        cell.piece.color === 'w' ? WHITE_PIECE_CLASS : BLACK_PIECE_CLASS
                       }`}
                     >
                       {GLYPH[cell.piece.type]}

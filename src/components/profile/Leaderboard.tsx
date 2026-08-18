@@ -1,18 +1,24 @@
 'use client';
 
 /**
- * Global leaderboard with three switchable boards: wins, Match-3 and Runner.
+ * Global leaderboard with three switchable boards: wins, Neon Nexus and Block Dash.
  *
  * WHY IT DEGRADES INSTEAD OF ERRORING
  * The leaderboard is the only part of the arcade that genuinely cannot work without a
  * backend. Rather than showing a broken panel or a scary error, an unconfigured install
- * gets a short explanation pointing at the README. Everything else on the profile page
- * keeps working, because it reads from the device.
+ * gets a short, player-facing message. Everything else on the profile page keeps
+ * working, because it reads from the device.
+ *
+ * The message is deliberately written for a PLAYER, not a developer: it says scores
+ * are not being shared right now, and says nothing about Supabase, environment keys or
+ * the README. Someone who just wants to play a game cannot act on that information and
+ * should not be shown a configuration chore.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
+import { gameTitle } from '@/lib/games';
 import {
   type LeaderboardState,
   fetchSoloLeaderboard,
@@ -24,8 +30,9 @@ type BoardId = 'wins' | 'match-3' | 'runner';
 
 const BOARDS: Array<{ id: BoardId; label: string; unit: string; accent: string }> = [
   { id: 'wins', label: 'Wins', unit: 'wins', accent: '#a3e635' },
-  { id: 'match-3', label: 'Match-3', unit: 'pts', accent: '#fbbf24' },
-  { id: 'runner', label: 'Runner', unit: 'pts', accent: '#34d399' },
+  // Labels via gameTitle(); ids remain the stored database keys.
+  { id: 'match-3', label: gameTitle('match-3'), unit: 'pts', accent: '#fbbf24' },
+  { id: 'runner', label: gameTitle('runner'), unit: 'pts', accent: '#34d399' },
 ];
 
 export function Leaderboard({ mePubkey }: { mePubkey: string }) {
@@ -114,10 +121,10 @@ export function Leaderboard({ mePubkey }: { mePubkey: string }) {
 
           {state.kind === 'unavailable' && (
             <div className="rounded-2xl border border-hairline bg-black/40 px-4 py-5 text-center">
-              <p className="hud-label text-hud-amber">Leaderboard offline</p>
-              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-zinc-500">
-                Your own stats and personal bests are saved on this device and work fine. A
-                shared leaderboard needs the two Supabase keys — see step 4 of the README.
+              <p className="hud-label text-zinc-500">Not available</p>
+              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-zinc-600">
+                Global rankings aren&apos;t being shared right now. Your own stats and
+                personal bests are safe on this device.
               </p>
             </div>
           )}

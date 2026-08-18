@@ -10,6 +10,7 @@ import { useCallback, useMemo } from 'react';
 import PhaserCanvas, { type GameBridge } from '../PhaserCanvas';
 import { ArcadeGameFrame, type ResultRow } from '@/components/game/ArcadeGameFrame';
 import { GameShell } from '@/components/game/GameShell';
+import { gameTitle } from '@/lib/games';
 import { type RunnerResult, createRunnerScene } from './scene';
 
 
@@ -39,8 +40,12 @@ export function RunnerGame() {
     [],
   );
 
+  // Label read from the game library; the internal id stays 'runner'.
   return (
-    <GameShell title="Runner" subtitle="Endless sprint · every track is provably clearable">
+    <GameShell
+      title={gameTitle('runner')}
+      subtitle="Endless sprint · every track is provably clearable"
+    >
       <ArcadeGameFrame<RunnerResult>
         gameId="runner"
         scoreOf={scoreOf}

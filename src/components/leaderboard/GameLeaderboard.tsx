@@ -121,14 +121,19 @@ export function GameLeaderboard({
             </div>
           )}
 
+          {/*
+            Player-facing empty state — no developer instructions.
+            This used to name Supabase and point at "step 5 of the README", which is a
+            note to whoever deploys the arcade, not to someone who came here to see who
+            is winning. A player cannot act on it, so all they are told now is that
+            rankings are not being shared and their own records are safe.
+          */}
           {state.kind === 'unavailable' && (
             <div className="glass rounded-2xl px-4 py-6 text-center">
-              <p className="hud-label text-hud-amber">Leaderboard offline</p>
+              <p className="hud-label text-ink-soft">Rankings unavailable</p>
               <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-ink-soft">
-                A shared leaderboard is the one feature that needs a backend. Your own
-                personal bests and match history are saved on this device and work fine
-                without it. To switch this on, add the two Supabase keys — see step 5 of
-                the README.
+                Global rankings aren&apos;t being shared right now. Your personal bests and
+                match history are saved on this device.
               </p>
             </div>
           )}

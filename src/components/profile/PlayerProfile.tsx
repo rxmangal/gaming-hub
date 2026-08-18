@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 
 import { GameShell } from '@/components/game/GameShell';
+import { gameTitle } from '@/lib/games';
 import { FormStrip, OutcomeBar, Panel, StatCard } from './StatCard';
 import { Leaderboard } from './Leaderboard';
 import {
@@ -168,9 +169,23 @@ export function PlayerProfile() {
         {/* ---------------- Solo bests ---------------- */}
         <Panel title="Personal bests" hint="solo games" delay={0.3}>
           <div className="space-y-2.5">
+            {/*
+              Labels come from gameTitle() so this section cannot drift from the lobby.
+              The ids stay 'match-3'/'runner' because they key localStorage and Supabase.
+            */}
             {[
-              { id: 'match-3' as const, label: 'Match-3', accent: '#fbbf24', href: '/play/match-3' },
-              { id: 'runner' as const, label: 'Runner', accent: '#34d399', href: '/play/runner' },
+              {
+                id: 'match-3' as const,
+                label: gameTitle('match-3'),
+                accent: '#fbbf24',
+                href: '/play/match-3',
+              },
+              {
+                id: 'runner' as const,
+                label: gameTitle('runner'),
+                accent: '#34d399',
+                href: '/play/runner',
+              },
             ].map((game) => {
               const best = stats?.soloBests[game.id];
               const played = stats?.perGame[game.id]?.played ?? 0;

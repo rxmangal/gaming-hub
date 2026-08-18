@@ -544,11 +544,28 @@ export function createRunnerScene(
     }
 
     /**
-     * Draws the player.
+     * Draws the player: a block-built robot, assembled from separate plates.
      *
-     * Deliberately a simple glowing capsule: it must stay readable against a busy track
-     * at speed, and its silhouette has to communicate state instantly — tall and lifted
-     * when airborne, flat and wide when sliding. Recognisable state beats detail here.
+     * WHY THIS IS NOT A RECTANGLE ANY MORE
+     * The player used to be one rounded rect with a visor stripe. It read as a glowing
+     * bar rather than a character — the game is called Block Dash and the thing you
+     * control looked like a HUD element.
+     *
+     * It is still drawn procedurally (no sprite sheet, no image files, nothing to load)
+     * but now as a stack of parts: head with a visor and two eyes, an antenna, a torso
+     * with a power core, two arms and two legs. Because the parts are separate they can
+     * be posed, which is what makes it read as a character: the legs alternate in a run
+     * cycle, the arms counter-swing, it tucks in mid-air and stretches out flat in a
+     * slide.
+     *
+     * READABILITY STILL WINS. A runner is read at speed, from a distance, so the
+     * silhouette carries the state before any detail does — upright and lifted when
+     * airborne, long and low when sliding. The detail is what makes it a character; the
+     * silhouette is what makes it playable, and the silhouette footprint (`w`/`h`) is
+     * unchanged from the old capsule so the game reads exactly as before.
+     *
+     * PURELY COSMETIC. Collision uses the lane index and the airborne/sliding flags, not
+     * these pixels, so the solver's fairness proof is untouched by this method.
      */
     private renderPlayer(): void {
       const g = this.player;
@@ -573,25 +590,125 @@ export function createRunnerScene(
 
       const bottom = this.groundY - lift;
 
+      /** Chassis palette: dark plate, cyan rim, white-hot visor. */
+      const RIM = 0x22d3ee;
+      const PLATE = 0x0a1a22;
+      const CORE = 0xa5f3fc;
+
       // Ground shadow, tightening as the player nears the floor. This is the cue that
       // makes the height of a jump legible.
       const shadow = 1 - lift / 170;
       g.fillStyle(0x000000, 0.5 * shadow);
       g.fillEllipse(x, this.groundY + 6, w * (0.7 + 0.4 * shadow), 16 * shadow + 4);
 
-      // Glow, then body, then rim — same lit-glass treatment as the match-3 gems.
+      // Ambient glow around the whole silhouette, so the robot never sinks into the track.
       for (let i = 3; i >= 1; i--) {
-        g.fillStyle(0x22d3ee, 0.06 * i);
+        g.fillStyle(RIM, 0.05 * i);
         g.fillRoundedRect(x - w / 2 - i * 4, bottom - h - i * 4, w + i * 8, h + i * 8, 14);
       }
-      g.fillStyle(0x000000, 0.9);
-      g.fillRoundedRect(x - w / 2, bottom - h, w, h, 12);
-      g.lineStyle(2.5, 0x22d3ee, 1);
-      g.strokeRoundedRect(x - w / 2, bottom - h, w, h, 12);
 
-      // Visor: gives the capsule a facing and a focal point.
-      g.fillStyle(0xffffff, 0.85);
-      g.fillRoundedRect(x - w * 0.26, bottom - h + h * 0.16, w * 0.52, h * 0.16, 4);
+      /**
+       * One armour plate, positioned from its CENTRE.
+       *
+       * Centre-based coordinates are deliberate: every part is placed relative to a joint
+       * (hip, shoulder, neck), and animating a joint means nudging one number instead of
+       * recomputing a corner offset.
+       */
+      const plate = (cx: number, cy: number, pw: number, ph: number, radius = 3) => {
+        g.fillStyle(PLATE, 0.98);
+        g.fillRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, radius);
+        g.lineStyle(2, RIM, 0.95);
+        g.strokeRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, radius);
+      };
+
+      if (this.sliding) {
+        /* ---------------------- SLIDE: long, low, head-first ---------------------- */
+        // Legs trail behind, so the mass sits forward and the pose cannot be mistaken
+        // for a short stand.
+        plate(x - 20, bottom - 11, 30, 11);
+        plate(x - 16, bottom - 24, 26, 10);
+
+        // Torso, pitched flat.
+        plate(x + 2, bottom - 18, 40, 22, 5);
+
+        // Power core.
+        g.fillStyle(CORE, 0.9);
+        g.fillRoundedRect(x - 4, bottom - 22, 10, 8, 2);
+
+        // Trailing arm, thrown back for balance.
+        plate(x - 12, bottom - 32, 24, 8);
+
+        // Head, thrust forward, visor leading.
+        plate(x + 25, bottom - 27, 24, 20, 4);
+        g.fillStyle(CORE, 0.95);
+        g.fillRoundedRect(x + 17, bottom - 31, 16, 6, 2);
+        return;
+      }
+
+      /* ------------------------- STAND / RUN / JUMP pose ------------------------- */
+
+      /**
+       * Run cycle. One sine drives the whole body so the parts stay in phase — legs,
+       * arms and the vertical bob all read as a single motion. Frozen mid-air, because
+       * a running animation while airborne looks like a bug.
+       */
+      const stride = this.airborne ? 0 : Math.sin(this.time.now / 62);
+      const bob = this.airborne ? 0 : Math.abs(stride) * 2;
+
+      // Legs tuck up in a jump — the classic "knees to chest" read.
+      const legH = this.airborne ? 20 : 32;
+      const legW = 14;
+      const hipY = bottom - legH / 2;
+
+      // Alternating lift: whichever leg is forward rises, the other stays planted.
+      const leftLift = Math.max(0, stride) * 9;
+      const rightLift = Math.max(0, -stride) * 9;
+
+      plate(x - 11, hipY - leftLift, legW, legH);
+      plate(x + 11, hipY - rightLift, legW, legH);
+
+      // Feet, so the legs end in something rather than stopping dead.
+      plate(x - 11, bottom - 3 - leftLift, legW + 4, 7, 2);
+      plate(x + 11, bottom - 3 - rightLift, legW + 4, 7, 2);
+
+      const torsoH = 36;
+      const torsoW = 40;
+      const torsoCY = bottom - legH - torsoH / 2 - bob;
+
+      plate(x, torsoCY, torsoW, torsoH, 6);
+
+      // Power core: the focal point, and a pulse that shows the game is still running.
+      const pulse = 0.65 + 0.35 * Math.sin(this.time.now / 180);
+      g.fillStyle(CORE, pulse);
+      g.fillRoundedRect(x - 7, torsoCY - 6, 14, 12, 3);
+      g.fillStyle(0xffffff, 0.6 * pulse);
+      g.fillRoundedRect(x - 3, torsoCY - 3, 6, 6, 2);
+
+      // Arms counter-swing against the legs; both come up when airborne.
+      const armSwing = this.airborne ? -9 : stride * 6;
+      plate(x - 25, torsoCY - armSwing, 10, 26, 3);
+      plate(x + 25, torsoCY + armSwing, 10, 26, 3);
+
+      // Head, with a lit visor and two eyes inside it.
+      const headH = 26;
+      const headCY = torsoCY - torsoH / 2 - headH / 2 - 2;
+      plate(x, headCY, 34, headH, 5);
+
+      g.fillStyle(0x000000, 0.85);
+      g.fillRoundedRect(x - 13, headCY - 5, 26, 11, 3);
+      g.fillStyle(CORE, 0.95);
+      g.fillRoundedRect(x - 9, headCY - 2, 6, 5, 1);
+      g.fillRoundedRect(x + 3, headCY - 2, 6, 5, 1);
+
+      // Antenna: breaks the straight top edge, which is most of what stops a stack of
+      // plates still reading as a box.
+      g.lineStyle(2, RIM, 0.9);
+      g.beginPath();
+      g.moveTo(x + 8, headCY - headH / 2);
+      g.lineTo(x + 13, headCY - headH / 2 - 10);
+      g.strokePath();
+      g.fillStyle(CORE, pulse);
+      g.fillCircle(x + 13, headCY - headH / 2 - 12, 3);
     }
 
     private updateHud(): void {

@@ -10,6 +10,7 @@ import { useCallback, useMemo } from 'react';
 import PhaserCanvas, { type GameBridge } from '../PhaserCanvas';
 import { ArcadeGameFrame, type ResultRow } from '@/components/game/ArcadeGameFrame';
 import { GameShell } from '@/components/game/GameShell';
+import { gameTitle } from '@/lib/games';
 import { type Match3Result, createMatch3Scene } from './scene';
 
 
@@ -41,8 +42,17 @@ export function Match3Game() {
     [],
   );
 
+  /*
+   * Title comes from the library via gameTitle('match-3') rather than being typed here.
+   * The internal id stays 'match-3' (it is a database and localStorage key), so
+   * hardcoding the label is what let the old name leak onto this screen after the lobby
+   * was renamed. One source of truth prevents that recurring.
+   */
   return (
-    <GameShell title="Match-3" subtitle="30 moves · chain cascades for multipliers">
+    <GameShell
+      title={gameTitle('match-3')}
+      subtitle="30 moves · chain cascades for multipliers"
+    >
       <ArcadeGameFrame<Match3Result>
         gameId="match-3"
         scoreOf={scoreOf}

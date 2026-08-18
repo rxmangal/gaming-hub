@@ -22,6 +22,8 @@
  *  4. GAMES NEED TO TALK TO REACT. The scene factory receives a plain callback bag, so
  *     scenes report score/state upward without React ever reaching into scene internals.
  *     One direction only: React renders HUD, Phaser owns the game loop.
+ *
+ *  5. THE CANVAS MUST FIT THE SCREEN IT IS ON. See the sizing note above the wrapper.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -49,15 +51,53 @@ interface PhaserCanvasProps<TResult> {
   width: number;
   height: number;
   bridge: GameBridge<TResult>;
+  /**
+   * Height budget for the canvas as a CSS length.
+   *
+   * Defaults to the viewport minus the arcade's chrome (sticky header, score strip,
+   * control hint, page padding). Override per game if a screen has more or less
+   * furniture around the canvas.
+   */
+  maxHeight?: string;
   /** Extra classes for the wrapper. */
   className?: string;
 }
+
+/**
+ * VIEWPORT BUDGET — the fix for "the board is cut off unless I zoom out to 75%".
+ *
+ * The old wrapper was `w-full` with `aspect-ratio: 720/860`. Width therefore always won:
+ * in a 768px-wide column that portrait ratio computes to roughly 900px of height, which
+ * is taller than most laptop viewports. The bottom of the board fell below the fold and
+ * the only way to see it was to zoom the browser out. On a phone the same rule was
+ * harmless — a 390px-wide column is only ~466px tall — which is exactly why this looked
+ * like a desktop-only bug.
+ *
+ * The rule is now inverted: derive the WIDTH from a height budget, and clamp it to the
+ * column with `min()`.
+ *
+ *   width = min(100%, budget × aspectRatio)
+ *
+ * Whichever constraint is tighter wins, so:
+ *   - Desktop / short laptop → the height budget wins, the board scales down to fit.
+ *   - Phone portrait → 100% wins and behaviour is byte-for-byte what it is today.
+ *
+ * `dvh` (not `vh`) is deliberate: on mobile browsers `vh` counts the area hidden behind
+ * the collapsing address bar, so a `vh` budget is silently too tall on exactly the
+ * devices least able to afford it.
+ *
+ * The `max(...)` floor stops the canvas collapsing to a slit in a very short viewport
+ * (a landscape phone, or a desktop window dragged to half-height). In that case the page
+ * scrolls, which is the honest trade — an unreadably small board is worse than a scroll.
+ */
+const DEFAULT_MAX_HEIGHT = 'max(300px, calc(100dvh - 15rem))';
 
 export default function PhaserCanvas<TResult>({
   createScenes,
   width,
   height,
   bridge,
+  maxHeight = DEFAULT_MAX_HEIGHT,
   className = '',
 }: PhaserCanvasProps<TResult>) {
   const holderRef = useRef<HTMLDivElement | null>(null);
@@ -96,6 +136,11 @@ export default function PhaserCanvas<TResult>({
           // Pure black. This is an OLED-dark arcade; the canvas must not glow grey.
           backgroundColor: '#000000',
           scale: {
+            /**
+             * FIT + RESIZE listener: Phaser rescales the drawing buffer whenever the
+             * parent box changes size, so rotating a phone or dragging a desktop window
+             * re-letterboxes the game instead of cropping it.
+             */
             mode: phaser.Scale.FIT,
             autoCenter: phaser.Scale.CENTER_BOTH,
           },
@@ -111,11 +156,11 @@ export default function PhaserCanvas<TResult>({
             /**
              * AUDIT FIX — THE BIGGEST MOBILE BUG IN THE ARCADE.
              *
-             * Both Phaser games are driven by swipes: up/down to jump and slide in the
-             * Runner, and drag-a-gem in Match-3. On a touchscreen the browser claims those
-             * same gestures for page scrolling, so every swipe both moved the player AND
-             * scrolled the page out from under them. The Runner was close to unplayable on
-             * a phone.
+             * Both Phaser games are driven by swipes: up/down to jump and slide in Block
+             * Dash, and drag-a-gem in Neon Nexus. On a touchscreen the browser claims
+             * those same gestures for page scrolling, so every swipe both moved the
+             * player AND scrolled the page out from under them. Block Dash was close to
+             * unplayable on a phone.
              *
              * `touch-action: 'none'` tells the browser to stop interpreting touches inside
              * the canvas as scroll/zoom and hand them to us. It is scoped to the canvas
@@ -139,6 +184,10 @@ export default function PhaserCanvas<TResult>({
           if (disposed || !game.canvas) return;
           game.canvas.style.touchAction = 'none';
           game.canvas.style.userSelect = 'none';
+          // Scale.FIT writes explicit pixel dimensions onto the canvas. Letting it also
+          // obey the wrapper prevents a 1px rounding overflow at some zoom levels.
+          game.canvas.style.maxWidth = '100%';
+          game.canvas.style.maxHeight = '100%';
         });
 
         // A second late-dispose check: `new Game()` is synchronous but the await above
@@ -171,12 +220,35 @@ export default function PhaserCanvas<TResult>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createScenes, width, height]);
 
+  /**
+   * Keeps Phaser's internal size in step with the CSS box.
+   *
+   * Scale.FIT recalculates on window resize, but not when the parent box changes for
+   * another reason (a sibling panel appearing, a font loading and reflowing the header).
+   * A ResizeObserver on the actual holder covers every case.
+   */
+  useEffect(() => {
+    const holder = holderRef.current;
+    if (!holder || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver(() => {
+      gameRef.current?.scale.refresh();
+    });
+    observer.observe(holder);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className={`relative w-full ${className}`}>
+    <div className={`relative mx-auto ${className}`} style={{ width: 'fit-content' }}>
       <div
         ref={holderRef}
-        className="w-full overflow-hidden rounded-2xl border border-white/10 bg-black [&>canvas]:block [&>canvas]:h-auto [&>canvas]:w-full"
-        style={{ aspectRatio: `${width} / ${height}` }}
+        className="grid place-items-center overflow-hidden rounded-2xl border border-white/10 bg-black [&>canvas]:block"
+        style={{
+          // See the VIEWPORT BUDGET note above: width is derived from the height budget
+          // and then clamped to the available column, so neither axis can overflow.
+          width: `min(100%, calc(${maxHeight} * ${width} / ${height}))`,
+          aspectRatio: `${width} / ${height}`,
+        }}
       />
 
       {loading && !error && (
